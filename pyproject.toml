@@ -1,0 +1,15 @@
+[project]
+name = "markov-dashboard"
+version = "0.1.0"
+requires-python = "==3.12.*"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+    "yfinance>=0.2",
+    "numpy>=1.26",
+    "pandas>=2.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
