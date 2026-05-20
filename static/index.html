@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markov Dashboard</title>
+  <style>
+    :root {
+      --bg:     #0d0d0d;
+      --card:   #141414;
+      --border: #222;
+      --green:  #00ff88;
+      --red:    #ff4466;
+      --gold:   #f5c542;
+      --muted:  #555;
+      --text:   #eee;
+      --dim:    #888;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green); }
+    #updated { font-size: 0.65rem; color: var(--muted); margin-top: 5px; }
+
+    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+    select {
+      appearance: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 8px 36px 8px 14px;
+      cursor: pointer;
+      outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    select:focus { border-color: var(--green); }
+    select option { background: #141414; }
+
+    .ctrl-wrap { display: flex; align-items: center; gap: 8px; }
+    .ctrl-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    input[type=number] {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 8px 10px;
+      outline: none;
+      width: 88px;
+      text-align: right;
+    }
+    input[type=number]:focus { border-color: var(--green); }
+    input[type=number]::-webkit-inner-spin-button { opacity: 0.3; }
+
+    /* ── Loading bar ── */
+    #bar { height: 2px; background: var(--green); width: 0; transition: width 0.4s; border-radius: 2px; margin-bottom: 32px; }
+
+    /* ── Group header ── */
+    .group-hdr {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 36px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+      cursor: default;
+    }
+    .card:hover { border-color: #333; transform: translateY(-2px); }
+
+    /* Left accent bar */
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 12px 0 0 12px;
+    }
+    .card.LONG::before  { background: var(--green); }
+    .card.SHORT::before { background: var(--red); }
+    .card.FLAT::before  { background: var(--border); }
+
+    /* ── Card top row ── */
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .asset-name  { font-size: 1rem; font-weight: 700; letter-spacing: 0.01em; }
+    .asset-price { font-size: 0.7rem; color: var(--dim); margin-top: 4px; }
+
+    /* Signal pill */
+    .signal {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      padding: 5px 13px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .signal.LONG  { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+    .signal.SHORT { background: rgba(255,68,102,0.12); color: var(--red);   border: 1px solid rgba(255,68,102,0.25); }
+    .signal.FLAT  { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── Prob bars ── */
+    .probs { margin-bottom: 18px; }
+    .prob-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .prob-lbl { font-size: 0.62rem; color: var(--dim); width: 50px; flex-shrink: 0; }
+    .bar-wrap  { flex: 1; background: #1e1e1e; border-radius: 3px; height: 4px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+    .bar-fill.bull { background: var(--green); }
+    .bar-fill.bear { background: var(--red); }
+    .bar-fill.side { background: #444; }
+    .prob-pct  { font-size: 0.65rem; font-weight: 600; width: 36px; text-align: right; color: var(--text); flex-shrink: 0; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      flex: 1;
+      background: #0d0d0d;
+      border-radius: 8px;
+      padding: 9px 8px;
+      text-align: center;
+    }
+    .stat-box .s-lbl { font-size: 0.53rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .stat-box .s-val { font-size: 0.82rem; font-weight: 700; }
+    .s-val.green { color: var(--green); }
+    .s-val.red   { color: var(--red); }
+    .s-val.dim   { color: var(--dim); }
+
+    /* ── Levels ── */
+    .levels {
+      display: flex;
+      gap: 8px;
+    }
+    .level {
+      flex: 1;
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+    .level.tp { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.1); }
+    .level.sl { background: rgba(255,68,102,0.05); border: 1px solid rgba(255,68,102,0.1); }
+    .level .l-lbl { font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+    .level.tp .l-lbl { color: var(--green); }
+    .level.sl .l-lbl { color: var(--red); }
+    .level .l-val { font-size: 0.78rem; font-weight: 700; }
+    .level.tp .l-val { color: var(--green); }
+    .level.sl .l-val { color: var(--red); }
+
+    /* ── Misc ── */
+    @keyframes pulse { 0%,100%{opacity:.25} 50%{opacity:.7} }
+    .loading-msg { animation: pulse 1.4s infinite; color: var(--muted); font-size: 0.85rem; padding: 40px 0; }
+    .err-msg { color: var(--muted); font-size: 0.72rem; padding: 4px 0; }
+
+    footer {
+      margin-top: 64px;
+      font-size: 0.6rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 2;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Markov Regime Dashboard</div>
+    <div id="updated">Connecting...</div>
+  </div>
+  <div class="controls">
+    <div class="ctrl-wrap">
+      <span class="ctrl-label">TF</span>
+      <select id="tf">
+        <option value="15m">15 min</option>
+        <option value="1h" selected>1 Hour</option>
+        <option value="4h">4 Hour</option>
+        <option value="1d">Daily</option>
+      </select>
+    </div>
+    <div class="ctrl-wrap">
+      <span class="ctrl-label">Account $</span>
+      <input type="number" id="acct" value="10000" min="100" step="500" />
+    </div>
+    <div class="ctrl-wrap">
+      <span class="ctrl-label">Risk %</span>
+      <input type="number" id="risk" value="1" min="0.1" max="20" step="0.1" />
+    </div>
+  </div>
+</header>
+
+<div id="bar"></div>
+<div id="root"><p class="loading-msg">Fetching data — first load takes ~30 seconds...</p></div>
+
+<footer>
+  Roan / @RohOnChain · Lewis Jackson · yfinance (15–20 min delay) · Not financial advice
+</footer>
+
+<script>
+  const fmt = n => {
+    if (n == null) return '—';
+    const abs = Math.abs(n);
+    if (abs >= 10000) return n.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (abs >= 10)    return n.toFixed(4);
+    return n.toFixed(5);
+  };
+
+  function pnlStr(wins, losses) {
+    const acct = parseFloat(document.getElementById('acct').value) || 10000;
+    const risk = parseFloat(document.getElementById('risk').value) || 1;
+    const amt  = acct * (risk / 100);
+    const net  = (wins - losses) * amt;
+    const sign = net >= 0 ? '+' : '-';
+    return sign + '$' + Math.abs(net).toLocaleString('en', { maximumFractionDigits: 0 });
+  }
+
+  function pnlClass(wins, losses) {
+    const net = wins - losses;
+    return net > 0 ? 'green' : net < 0 ? 'red' : 'dim';
+  }
+
+  function buildCard(a) {
+    if (a.error) return `
+      <div class="card FLAT">
+        <div class="card-top">
+          <div><div class="asset-name">${a.label}</div></div>
+          <span class="signal FLAT">ERROR</span>
+        </div>
+        <p class="err-msg">${a.error}</p>
+      </div>`;
+
+    const bt = a.backtest || {};
+    const wr = bt.win_rate ?? 0;
+    const wrCls = wr >= 55 ? 'green' : wr >= 45 ? 'dim' : 'red';
+    const pnl = bt.wins != null ? pnlStr(bt.wins, bt.losses) : '—';
+    const pnlCls = bt.wins != null ? pnlClass(bt.wins, bt.losses) : 'dim';
+
+    return `
+    <div class="card ${a.signal}">
+      <div class="card-top">
+        <div>
+          <div class="asset-name">${a.label}</div>
+          <div class="asset-price">${fmt(a.price)} &nbsp;·&nbsp; ${a.regime}</div>
+        </div>
+        <span class="signal ${a.signal}">${a.signal}</span>
+      </div>
+
+      <div class="probs">
+        <div class="prob-row">
+          <span class="prob-lbl">Bull</span>
+          <div class="bar-wrap"><div class="bar-fill bull" style="width:${a.bull_pct}%"></div></div>
+          <span class="prob-pct">${a.bull_pct}%</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-lbl">Sideways</span>
+          <div class="bar-wrap"><div class="bar-fill side" style="width:${a.side_pct}%"></div></div>
+          <span class="prob-pct">${a.side_pct}%</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-lbl">Bear</span>
+          <div class="bar-wrap"><div class="bar-fill bear" style="width:${a.bear_pct}%"></div></div>
+          <span class="prob-pct">${a.bear_pct}%</span>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <span class="s-lbl">Win Rate</span>
+          <span class="s-val ${wrCls}">${wr}%</span>
+        </div>
+        <div class="stat-box">
+          <span class="s-lbl">Trades</span>
+          <span class="s-val dim">${bt.trades ?? '—'}</span>
+        </div>
+        <div class="stat-box">
+          <span class="s-lbl">Net P&amp;L</span>
+          <span class="s-val ${pnlCls}">${pnl}</span>
+        </div>
+      </div>
+
+      <div class="levels">
+        <div class="level tp">
+          <div class="l-lbl">TP +3× ATR</div>
+          <div class="l-val">${fmt(a.tp)}</div>
+        </div>
+        <div class="level sl">
+          <div class="l-lbl">SL −3× ATR</div>
+          <div class="l-val">${fmt(a.sl)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function render(data) {
+    document.getElementById('updated').textContent =
+      'Updated ' + (data.updated || '—') + ' · ' +
+      data.assets.filter(a => !a.error).length + ' assets loaded';
+
+    const groups = {};
+    for (const a of data.assets) {
+      if (!groups[a.group]) groups[a.group] = [];
+      groups[a.group].push(a);
+    }
+
+    let html = '';
+    for (const [g, assets] of Object.entries(groups)) {
+      // Sort: LONG first, then SHORT, then FLAT
+      assets.sort((a, b) => {
+        const rank = { LONG: 0, SHORT: 1, FLAT: 2 };
+        return (rank[a.signal] ?? 3) - (rank[b.signal] ?? 3);
+      });
+      html += `<div class="group-hdr">${g}</div><div class="grid">`;
+      for (const a of assets) html += buildCard(a);
+      html += '</div>';
+    }
+    document.getElementById('root').innerHTML = html;
+  }
+
+  function setBar(on) {
+    const b = document.getElementById('bar');
+    b.style.width = on ? '70%' : '100%';
+    if (!on) setTimeout(() => b.style.width = '0', 500);
+  }
+
+  let lastData = null, tf = '1h', timer = null;
+
+  async function refresh() {
+    setBar(true);
+    try {
+      const r = await fetch('/api/regimes?tf=' + tf);
+      lastData = await r.json();
+      render(lastData);
+    } catch {
+      document.getElementById('updated').textContent = 'Fetch error — retrying...';
+    }
+    setBar(false);
+  }
+
+  function poll() {
+    if (timer) clearInterval(timer);
+    refresh();
+    timer = setInterval(refresh, 60000);
+  }
+
+  document.getElementById('tf').addEventListener('change', e => {
+    tf = e.target.value;
+    document.getElementById('root').innerHTML = '<p class="loading-msg">Switching timeframe...</p>';
+    poll();
+  });
+
+  ['acct', 'risk'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => { if (lastData) render(lastData); })
+  );
+
+  poll();
+</script>
+</body>
+</html>
