@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Markov Dashboard</title>
+  <title>Markov Regime Dashboard</title>
   <style>
     :root {
       --bg:     #0d0d0d;
       --card:   #141414;
       --border: #222;
-      --green:  #00ff88;
+      --green:  #3FDE7E;
+      --green2: #00ff88;
       --red:    #ff4466;
       --gold:   #f5c542;
       --muted:  #555;
       --text:   #eee;
       --dim:    #888;
+      --bull:   #3FDE7E;
+      --bear:   #ff4466;
+      --side:   #666;
+      --card2:  #0B0F0D;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,6 +43,7 @@
     }
 
     .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green); }
+    .brand-sub { font-size: 0.55rem; color: var(--dim); margin-top: 4px; letter-spacing: 0.04em; }
     #updated { font-size: 0.65rem; color: var(--muted); margin-top: 5px; }
 
     .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -98,7 +104,7 @@
     /* ── Grid ── */
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 12px;
     }
 
@@ -115,7 +121,6 @@
     }
     .card:hover { border-color: #333; transform: translateY(-2px); }
 
-    /* Left accent bar */
     .card::before {
       content: '';
       position: absolute;
@@ -138,7 +143,6 @@
     .asset-name  { font-size: 1rem; font-weight: 700; letter-spacing: 0.01em; }
     .asset-price { font-size: 0.7rem; color: var(--dim); margin-top: 4px; }
 
-    /* Signal pill */
     .signal {
       font-size: 0.7rem;
       font-weight: 800;
@@ -148,14 +152,14 @@
       text-transform: uppercase;
       flex-shrink: 0;
     }
-    .signal.LONG  { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+    .signal.LONG  { background: rgba(63,222,126,0.12); color: var(--green); border: 1px solid rgba(63,222,126,0.25); }
     .signal.SHORT { background: rgba(255,68,102,0.12); color: var(--red);   border: 1px solid rgba(255,68,102,0.25); }
     .signal.FLAT  { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); }
 
     /* ── Prob bars ── */
-    .probs { margin-bottom: 18px; }
-    .prob-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .prob-lbl { font-size: 0.62rem; color: var(--dim); width: 50px; flex-shrink: 0; }
+    .probs { margin-bottom: 14px; }
+    .prob-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .prob-lbl { font-size: 0.62rem; color: var(--dim); width: 56px; flex-shrink: 0; }
     .bar-wrap  { flex: 1; background: #1e1e1e; border-radius: 3px; height: 4px; overflow: hidden; }
     .bar-fill  { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
     .bar-fill.bull { background: var(--green); }
@@ -166,40 +170,132 @@
     /* ── Stats row ── */
     .stats-row {
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 14px;
     }
     .stat-box {
       flex: 1;
       background: #0d0d0d;
       border-radius: 8px;
-      padding: 9px 8px;
+      padding: 8px 6px;
       text-align: center;
     }
-    .stat-box .s-lbl { font-size: 0.53rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 4px; }
-    .stat-box .s-val { font-size: 0.82rem; font-weight: 700; }
+    .stat-box .s-lbl { font-size: 0.5rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+    .stat-box .s-val { font-size: 0.78rem; font-weight: 700; }
     .s-val.green { color: var(--green); }
     .s-val.red   { color: var(--red); }
     .s-val.dim   { color: var(--dim); }
+    .s-val.gold  { color: var(--gold); }
 
     /* ── Levels ── */
-    .levels {
-      display: flex;
-      gap: 8px;
-    }
-    .level {
-      flex: 1;
-      border-radius: 8px;
-      padding: 9px 10px;
-    }
-    .level.tp { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.1); }
+    .levels { display: flex; gap: 8px; margin-bottom: 14px; }
+    .level { flex: 1; border-radius: 8px; padding: 8px 10px; }
+    .level.tp { background: rgba(63,222,126,0.05); border: 1px solid rgba(63,222,126,0.1); }
     .level.sl { background: rgba(255,68,102,0.05); border: 1px solid rgba(255,68,102,0.1); }
-    .level .l-lbl { font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+    .level .l-lbl { font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
     .level.tp .l-lbl { color: var(--green); }
     .level.sl .l-lbl { color: var(--red); }
-    .level .l-val { font-size: 0.78rem; font-weight: 700; }
+    .level .l-val { font-size: 0.75rem; font-weight: 700; }
     .level.tp .l-val { color: var(--green); }
     .level.sl .l-val { color: var(--red); }
+
+    /* ── Transition Matrix (card inset) ── */
+    .matrix-section { margin-top: 14px; }
+    .matrix-label {
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 6px;
+      opacity: 0.7;
+    }
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.6rem;
+    }
+    .matrix-table th {
+      font-size: 0.5rem;
+      color: var(--dim);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 3px 2px;
+      text-align: center;
+    }
+    .matrix-table td {
+      padding: 4px 2px;
+      text-align: center;
+      font-weight: 600;
+      border-radius: 3px;
+    }
+    .matrix-table .row-lbl {
+      text-align: left;
+      color: var(--dim);
+      font-size: 0.5rem;
+      letter-spacing: 0.04em;
+      padding-right: 6px;
+      font-weight: 600;
+    }
+    .matrix-table .diag {
+      background: rgba(63,222,126,0.12);
+      color: var(--green);
+      font-size: 0.7rem;
+      font-weight: 800;
+    }
+    .matrix-table .off {
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ── Persistence + Stationary (inline) ── */
+    .meta-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .meta-box {
+      flex: 1;
+      background: rgba(63,222,126,0.03);
+      border: 1px solid rgba(63,222,126,0.08);
+      border-radius: 8px;
+      padding: 8px 6px;
+    }
+    .meta-box .m-title {
+      font-size: 0.48rem;
+      color: var(--green);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
+    .meta-box .m-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1px 0;
+    }
+    .meta-box .m-lbl { font-size: 0.52rem; color: var(--dim); }
+    .meta-box .m-val { font-size: 0.62rem; font-weight: 700; }
+    .m-val.high { color: var(--green); }
+    .m-val.low  { color: var(--red); }
+    .m-val.mid  { color: var(--dim); }
+
+    /* ── Walk-forward badge ── */
+    .wf-badge {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .wf-item {
+      flex: 1;
+      background: #0d0d0d;
+      border-radius: 6px;
+      padding: 6px;
+      text-align: center;
+    }
+    .wf-item .wf-lbl { font-size: 0.45rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    .wf-item .wf-val { font-size: 0.7rem; font-weight: 700; }
 
     /* ── Misc ── */
     @keyframes pulse { 0%,100%{opacity:.25} 50%{opacity:.7} }
@@ -213,6 +309,8 @@
       text-align: center;
       line-height: 2;
     }
+    footer a { color: var(--green); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -220,6 +318,7 @@
 <header>
   <div>
     <div class="brand">Markov Regime Dashboard</div>
+    <div class="brand-sub">Framework: Roan (@RohOnChain) · Build: Lewis Jackson</div>
     <div id="updated">Connecting...</div>
   </div>
   <div class="controls">
@@ -247,10 +346,15 @@
 <div id="root"><p class="loading-msg">Fetching data — first load takes ~30 seconds...</p></div>
 
 <footer>
-  Roan / @RohOnChain · Lewis Jackson · yfinance (15–20 min delay) · Not financial advice
+  Framework by <a href="https://x.com/RohOnChain" target="_blank">Roan (@RohOnChain)</a>
+  · <a href="https://github.com/jackson-video-resources/markov-hedge-fund-method" target="_blank">Markov Hedge Fund Method</a>
+  · Lewis Jackson
+  · yfinance (15–20 min delay) · Not financial advice
 </footer>
 
 <script>
+  const STATES = ['Bear', 'Sideways', 'Bull'];
+
   const fmt = n => {
     if (n == null) return '—';
     const abs = Math.abs(n);
@@ -273,6 +377,33 @@
     return net > 0 ? 'green' : net < 0 ? 'red' : 'dim';
   }
 
+  function persistClass(v) { return v >= 70 ? 'high' : v >= 50 ? 'mid' : 'low'; }
+
+  function buildMatrixHTML(P) {
+    if (!P || !P.length) return '';
+    let html = `<div class="matrix-section">
+      <div class="matrix-label">Transition Matrix</div>
+      <table class="matrix-table">
+        <tr><th></th><th>Bull</th><th>Bear</th><th>Side</th></tr>`;
+    // P rows: [from_state][to_state] in internal order [Bear=0, Sideways=1, Bull=2]
+    // Display order: Bull, Bear, Sideways → internal: 2, 0, 1
+    const dispOrder = [2, 0, 1]; // Bull, Bear, Sideways
+    const dispNames = ['Bull', 'Bear', 'Side'];
+    for (let di = 0; di < 3; di++) {
+      const ri = dispOrder[di];
+      html += `<tr><td class="row-lbl">${dispNames[di]}</td>`;
+      for (let dj = 0; dj < 3; dj++) {
+        const ci = dispOrder[dj];
+        const val = P[ri][ci];
+        const isDiag = (di === dj);
+        html += `<td class="${isDiag ? 'diag' : 'off'}">${val}%</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</table></div>';
+    return html;
+  }
+
   function buildCard(a) {
     if (a.error) return `
       <div class="card FLAT">
@@ -288,6 +419,18 @@
     const wrCls = wr >= 55 ? 'green' : wr >= 45 ? 'dim' : 'red';
     const pnl = bt.wins != null ? pnlStr(bt.wins, bt.losses) : '—';
     const pnlCls = bt.wins != null ? pnlClass(bt.wins, bt.losses) : 'dim';
+
+    // Walk-forward
+    const wf = a.walk_forward || {};
+    const sharpe = wf.sharpe;
+    const maxDD = wf.max_drawdown;
+    const wfTrades = wf.n_trades;
+    const sharpeCls = sharpe != null ? (sharpe >= 1 ? 'green' : sharpe >= 0 ? 'dim' : 'red') : 'dim';
+    const ddCls = maxDD != null ? (maxDD > -20 ? 'green' : maxDD > -40 ? 'gold' : 'red') : 'dim';
+
+    // Persistence
+    const pers = a.persistence || {};
+    const stat = a.stationary || {};
 
     return `
     <div class="card ${a.signal}">
@@ -342,13 +485,46 @@
           <div class="l-val">${fmt(a.sl)}</div>
         </div>
       </div>
+
+      ${buildMatrixHTML(a.transition_matrix)}
+
+      <div class="meta-row">
+        <div class="meta-box">
+          <div class="m-title">Persistence</div>
+          <div class="m-row"><span class="m-lbl">Bull</span><span class="m-val ${persistClass(pers.bull)}">${pers.bull ?? '—'}%</span></div>
+          <div class="m-row"><span class="m-lbl">Bear</span><span class="m-val ${persistClass(pers.bear)}">${pers.bear ?? '—'}%</span></div>
+          <div class="m-row"><span class="m-lbl">Side</span><span class="m-val ${persistClass(pers.sideways)}">${pers.sideways ?? '—'}%</span></div>
+        </div>
+        <div class="meta-box">
+          <div class="m-title">Long-Run Mix</div>
+          <div class="m-row"><span class="m-lbl">Bull</span><span class="m-val ${persistClass(stat.bull)}">${stat.bull ?? '—'}%</span></div>
+          <div class="m-row"><span class="m-lbl">Bear</span><span class="m-val ${persistClass(stat.bear)}">${stat.bear ?? '—'}%</span></div>
+          <div class="m-row"><span class="m-lbl">Side</span><span class="m-val ${persistClass(stat.sideways)}">${stat.sideways ?? '—'}%</span></div>
+        </div>
+      </div>
+
+      ${sharpe != null ? `
+      <div class="wf-badge">
+        <div class="wf-item">
+          <div class="wf-lbl">Sharpe</div>
+          <div class="wf-val ${sharpeCls}">${sharpe}</div>
+        </div>
+        <div class="wf-item">
+          <div class="wf-lbl">Max DD</div>
+          <div class="wf-val ${ddCls}">${maxDD}%</div>
+        </div>
+        <div class="wf-item">
+          <div class="wf-lbl">WF Trades</div>
+          <div class="wf-val dim">${wfTrades ?? '—'}</div>
+        </div>
+      </div>` : ''}
     </div>`;
   }
 
   function render(data) {
     document.getElementById('updated').textContent =
       'Updated ' + (data.updated || '—') + ' · ' +
-      data.assets.filter(a => !a.error).length + ' assets loaded';
+      data.assets.filter(a => !a.error).length + ' / ' + data.assets.length + ' assets loaded';
 
     const groups = {};
     for (const a of data.assets) {
@@ -358,7 +534,6 @@
 
     let html = '';
     for (const [g, assets] of Object.entries(groups)) {
-      // Sort: LONG first, then SHORT, then FLAT
       assets.sort((a, b) => {
         const rank = { LONG: 0, SHORT: 1, FLAT: 2 };
         return (rank[a.signal] ?? 3) - (rank[b.signal] ?? 3);
